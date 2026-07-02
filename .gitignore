@@ -1,0 +1,17 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+config.yaml
+config_*.yaml
+
+logs/
+output/
+state/
+
+*.pdf
+
+.idea/
+.vscode/
+.DS_Store

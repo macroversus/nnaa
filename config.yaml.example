@@ -1,0 +1,137 @@
+# ==============================================================================
+# 非天然氨基酸文献获取
+# 入口：python3 nnaa_fetch.py run
+# ==============================================================================
+
+paths:
+  master_csv: /share/allpdfs/final_both_doi_filename_mapping_8.14.csv
+  master_doi_column: DOI
+  master_metadata_csv: /share/allpdfs/doi_metadata_crossref.csv
+  extra_doi_csvs: []
+  output_dir: /root/非天然氨基酸/output
+  state_dir: /root/非天然氨基酸/state
+  log_dir: /root/非天然氨基酸/logs
+
+search:
+  date_range_mode: explicit
+  date_from: "2024-01-01"
+  date_to: "2026-06-25"
+
+pubmed:
+  enabled: true
+  email: "your_email@example.com"
+  use_keywords_from_code: true
+  batch_size: 500
+  efetch_batch_size: 200
+  max_pmids: 0
+
+crossref:
+  enabled: true
+  mailto: "your_email@example.com"
+  query_param: bibliographic
+  limit_per_query: 300
+  rows_per_query: 200
+  request_interval_sec: 1.0
+  filter_types:
+    - "journal-article"
+  pathway:
+    query_source: nnaa_strategy
+    nnaa_strategy:
+      max_queries: 200
+  enzymatic:
+    query_source: nnaa_strategy
+    nnaa_strategy:
+      max_queries: 200
+  fermentation:
+    query_source: nnaa_strategy
+    nnaa_strategy:
+      max_queries: 200
+  chemical:
+    query_source: nnaa_strategy
+    nnaa_strategy:
+      max_queries: 300
+  hybrid:
+    query_source: nnaa_strategy
+    nnaa_strategy:
+      max_queries: 150
+
+article_type_filter:
+  enabled: true
+  exclude_publication_type_patterns:
+    - "review"
+    - "systematic review"
+    - "meta-analysis"
+    - "editorial"
+    - "published erratum"
+    - "retraction of publication"
+
+literature_cleaner:
+  enabled: true
+
+deduplication:
+  use_master_csv: false
+  normalize_doi: true
+  strip_doi_prefix: true
+  skip_invalid_doi: true
+  dedupe_by_title: true
+  dedupe_by_title_and_pub_date: true
+  include_previous_outputs: true
+  previous_output_glob: "nnaa_dois_*.csv"
+  previous_output_doi_column: doi
+
+local_pdf:
+  enabled: true
+
+title_filter:
+  enabled: false
+
+ai_screening:
+  enabled: false
+  api_base: "https://api.openai.com/v1"
+  api_key_env: "NNAA_FETCH_OPENAI_API_KEY"
+  api_key: ""
+  model: "gpt-4o-mini"
+  batch_size: 12
+  request_interval_sec: 0.5
+  checkpoint_enabled: true
+  only_keep_passed: false
+  keep_on_batch_error: true
+  fail_if_missing_key: false
+  extra_instructions: "非天然氨基酸（NNAA）。nnaa_category：pathway=代谢通路；enzymatic=酶法；fermentation=发酵；chemical=化学合成；hybrid=酶化学联用。"
+
+output:
+  run_dir_pattern: "%Y-%m-%d"
+  track_filenames:
+    pathway: pathway.csv
+    enzymatic: synthesis_enzymatic.csv
+    fermentation: synthesis_fermentation.csv
+    chemical: synthesis_chemical.csv
+    hybrid: synthesis_hybrid.csv
+  save_combined_in_run_dir: true
+  combined_filename: all.csv
+  save_legacy_flat_file: true
+  filename_pattern: "nnaa_dois_%Y-%m_%H%M%S.csv"
+  columns:
+    - doi
+    - title
+    - source
+    - nnaa_track
+    - pmid
+    - journal
+    - pub_date
+    - publication_types
+    - abstract
+    - local_has_pdf
+    - nnaa_compound
+    - ai_article_type
+    - lit_type_zh
+    - ai_domain_relevant
+    - ai_has_experiment
+    - ai_pass
+    - ai_rationale_zh
+    - ai_nnaa_category
+    - ai_synthesis_method
+    - ai_has_pathway_or_synthesis
+    - ai_compound
+    - fetched_at
+  save_empty_result: false
