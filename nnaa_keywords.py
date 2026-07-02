@@ -498,6 +498,14 @@ _PATH_SIG   = ("biosynthetic pathway[Title/Abstract] OR metabolic pathway[Title/
 _HYB_SIG    = ("chemoenzymatic[Title/Abstract] OR one-pot synthesis[Title/Abstract] "
                "OR hybrid synthesis[Title/Abstract] OR sequential biocatalysis[Title/Abstract]")
 
+# 广义 NNAA 术语——用于捕捉不点名具体化合物的方法论/综合性文献
+# 注意：这些检索式召回范围更宽，依赖 AI 筛选把关
+_NNAA_GENERIC = (
+    "non-natural amino acid[Title/Abstract] OR unnatural amino acid[Title/Abstract] "
+    "OR noncanonical amino acid[Title/Abstract] OR non-canonical amino acid[Title/Abstract] "
+    "OR ncAA[Title/Abstract]"
+)
+
 # --- 代谢通路（pathway） ---
 PUBMED_PATHWAY_QUERIES: Sequence[str] = (
     f"({_PM_ALIPH}) AND ({_PATH_SIG})",
@@ -510,6 +518,8 @@ PUBMED_PATHWAY_QUERIES: Sequence[str] = (
     f"({_PM_SER}) AND ({_PATH_SIG})",
     # 高频化合物宽泛通路检索
     f"({_PM_ALL_COMPOUNDS}) AND ({_PATH_SIG})",
+    # 广义 NNAA + 通路（捕捉不列具体化合物名的代谢通路文献）
+    f"({_NNAA_GENERIC}) AND ({_PATH_SIG})",
 )
 
 # --- 酶法合成（enzymatic） ---
@@ -524,6 +534,8 @@ PUBMED_ENZYMATIC_QUERIES: Sequence[str] = (
     f"({_PM_BETA}) AND ({_ENZ_SIG})",
     # 高频化合物 + 酶法
     f"({_PM_ALL_COMPOUNDS}) AND ({_ENZ_SIG})",
+    # 广义 NNAA + 酶法（捕捉转氨酶、酶级联等方法论文章）
+    f"({_NNAA_GENERIC}) AND ({_ENZ_SIG})",
 )
 
 # --- 生物发酵（fermentation） ---
@@ -537,6 +549,8 @@ PUBMED_FERMENTATION_QUERIES: Sequence[str] = (
     f"({_PM_SER}) AND ({_FERM_SIG})",
     # 高频化合物 + 发酵
     f"({_PM_ALL_COMPOUNDS}) AND ({_FERM_SIG})",
+    # 广义 NNAA + 发酵（捕捉细胞工厂/代谢工程生产 NNAA 的综合性文献）
+    f"({_NNAA_GENERIC}) AND ({_FERM_SIG})",
 )
 
 # --- 化学合成（chemical） ---
@@ -553,6 +567,8 @@ PUBMED_CHEMICAL_QUERIES: Sequence[str] = (
     f"({_PM_BETA}) AND ({_CHEM_SIG})",
     # 高频化合物 + 化学
     f"({_PM_ALL_COMPOUNDS}) AND ({_CHEM_SIG})",
+    # 广义 NNAA + 化学合成
+    f"({_NNAA_GENERIC}) AND ({_CHEM_SIG})",
     # 芳香类特定组合（文献量大，单独列出）
     "4-fluorophenylalanine[Title/Abstract] AND (synthesis[Title/Abstract] OR enantioselective[Title/Abstract])",
     "2-naphthylalanine[Title/Abstract] AND (synthesis[Title/Abstract] OR preparation[Title/Abstract])",
@@ -572,6 +588,8 @@ PUBMED_HYBRID_QUERIES: Sequence[str] = (
     f"({_PM_PRO}) AND ({_HYB_SIG})",
     f"({_PM_ARG}) AND ({_HYB_SIG})",
     f"({_PM_ALL_COMPOUNDS}) AND ({_HYB_SIG})",
+    # 广义 NNAA + 联用合成
+    f"({_NNAA_GENERIC}) AND ({_HYB_SIG})",
 )
 
 # ===========================================================================
