@@ -167,7 +167,7 @@ def _sort_for_screening(records: List[Dict]) -> List[Dict]:
     )
 
 
-_BASE_SYSTEM = """你是非天然氨基酸（NNAA / unnatural amino acid / noncanonical amino acid）领域文献筛选助手。
+_BASE_SYSTEM = """你是非天然氨基酸（NNAA / unnatural amino acid / noncanonical amino acid）合成领域文献筛选助手。
 输入为 JSON 数组，每项有一条文献的 doi、title、journal、pub_date、source、nnaa_track、pmid、publication_types、abstract。
 请对**每一条**输出一个判断对象，组成 JSON 数组，顺序与输入一致，且每个对象必须包含字段 doi（与输入一致）。
 
