@@ -172,6 +172,13 @@ _BASE_SYSTEM = """你是非天然氨基酸（NNAA / unnatural amino acid / nonca
 请对**每一条**输出一个判断对象，组成 JSON 数组，顺序与输入一致，且每个对象必须包含字段 doi（与输入一致）。
 
 ══════════════════════════════════════════════
+【第〇步：基础验证——摘要/标题中是否出现氨基酸？】
+══════════════════════════════════════════════
+在做任何判断之前，先检查：标题和摘要中是否明确出现任何氨基酸名称（amino acid、氨基酸、或具体化合物名）？
+如果没有出现任何氨基酸相关词语，直接设 domain_relevant=false，不得推断隐含的关联。
+★ 严禁 AI 幻觉：不得因文章提到"酶"、"代谢"、"合成"等词而推测含有NNAA，必须摘要/标题中有明确氨基酸化合物名称。
+
+══════════════════════════════════════════════
 【第一步：化合物识别——它是氨基酸吗？】
 ══════════════════════════════════════════════
 首先判断文献的核心研究化合物是否属于氨基酸类（α-氨基酸、β-氨基酸、N-取代氨基酸、氨基酸衍生物）。
@@ -189,6 +196,11 @@ _BASE_SYSTEM = """你是非天然氨基酸（NNAA / unnatural amino acid / nonca
   ✗ 芳香族化合物（非氨基酸骨架）：苯乙烯、肉桂酸、对苯二酚等
   注意：以上化合物在代谢工程论文中频繁出现，但不属于 NNAA 范畴。
 
+★ 关于化合物缩写的识别规则（防词碰撞）：
+  短缩写（4字母及以内，如 Aib、GABA、Sep 等）只有在标题或摘要中被明确用于化学/生化语境时才算命中
+  （例如 Aib 必须在上下文中与"amino acid"、"peptide"、"synthesis"、"amino"等词共现，
+   否则可能是其他语言中的普通词汇）。
+
 ══════════════════════════════════════════════
 【第二步：是天然蛋白质氨基酸还是非天然氨基酸？】
 ══════════════════════════════════════════════
@@ -196,11 +208,18 @@ _BASE_SYSTEM = """你是非天然氨基酸（NNAA / unnatural amino acid / nonca
 以下情形即使研究的是天然氨基酸本身，也必须 domain_relevant=false：
   ✗ 谷氨酸（glutamic acid / monosodium glutamate）的发酵生产
   ✗ 赖氨酸（L-lysine）的工业发酵（作为饲料添加剂）
+  ✗ 精氨酸（arginine）的代谢调控、生理功能研究（免疫、T细胞、肿瘤、心血管等）
+  ✗ 天冬氨酸（aspartate / aspartic acid）的普通代谢研究
   ✗ 色氨酸、苏氨酸等天然氨基酸的普通代谢研究
   ✗ 仅研究天然氨基酸的代谢通路作为背景信息
+  ✗ GABA（γ-氨基丁酸）用于神经科学/肿瘤/生理调控研究 — GABA 虽属γ-氨基酸，但在本数据库中不作为
+    NNAA 对待，除非文章明确研究 GABA 的化学合成或将其作为 NNAA 底物进行酶法转化
 
-例外：下列"天然"氨基酸在 NNAA 研究中有特殊地位，若文献以其为 NNAA 工具/底物则相关：
-  △ 鸟氨酸 (ornithine)、瓜氨酸 (citrulline) — 作为 NNAA 代谢前体/中间体
+例外：下列"天然"氨基酸在 NNAA 研究中有特殊地位，**仅当文献明确以其为 NNAA 合成前体或NNAA相关工具**时才相关：
+  △ 鸟氨酸 (ornithine)：仅当文章研究其作为非天然氨基酸的前体合成或酶促转化时相关
+    （普通尿素循环、氨代谢研究→排除）
+  △ 瓜氨酸 (citrulline)：仅当作为 NNAA 合成中间体或酶促转化底物时相关
+    （普通氨基酸补充剂/生理效应/泌乳/运动营养研究→排除）
   △ 硒代半胱氨酸 (selenocysteine)、吡咯赖氨酸 (pyrrolysine) — 第21/22种天然 AA，GCE 研究核心
   △ 羟脯氨酸 (hydroxyproline)、磷酸丝氨酸 (phosphoserine) — 翻译后修饰研究
 
@@ -218,9 +237,9 @@ _BASE_SYSTEM = """你是非天然氨基酸（NNAA / unnatural amino acid / nonca
   ✓ D-氨基酸的合成、代谢、转化
 
 典型 NNAA 化合物（见到即相关）：
-  norvaline, norleucine, tert-leucine, Aib, alpha-aminoisobutyric acid,
+  norvaline, norleucine, tert-leucine, Aib (α-aminoisobutyric acid, in chemistry context),
   cyclohexylalanine, 4-fluorophenylalanine, naphthylalanine, biphenylalanine,
-  4-hydroxyproline, pipecolic acid, citrulline (as NNAA), homoarginine,
+  4-hydroxyproline, pipecolic acid, homoarginine,
   5-hydroxytryptophan, D-amino acids (D-Ala, D-Phe etc.), beta-amino acids,
   p-azidophenylalanine, p-benzoylphenylalanine, p-acetylphenylalanine,
   BocK, AllocK, propargyllysine, phosphoserine, 3-nitrotyrosine, pyrrolysine,
@@ -242,9 +261,11 @@ _BASE_SYSTEM = """你是非天然氨基酸（NNAA / unnatural amino acid / nonca
    → yes：有 NNAA 酶法制备工艺（酶种类、反应条件、转化率）
    → yes：有 NNAA 发酵/代谢工程生产方案（菌株改造、滴度、产率）
    → yes：有 NNAA 前体/中间体的合成分析
-   → unclear：摘要提示有上述内容但细节不足以判断
+   → unclear：摘要提示有上述内容但细节不足以判断（需要全文才能确定）
    → no：文献只是"使用"已知 NNAA（蛋白标记/click chemistry/生物成像等），未报告如何制备
    → no：只研究 NNAA 结构、性质、生物活性，无合成/通路信息
+   ★ 注意：如果摘要明显只讨论 NNAA 的应用（incorporation into proteins, labeling,
+     bioorthogonal reactions等），无任何制备/通路描述，必须设为 no（不得设为unclear）。
 
 5) pass_filter: true/false
    按文章类型分两套规则：
@@ -260,12 +281,16 @@ _BASE_SYSTEM = """你是非天然氨基酸（NNAA / unnatural amino acid / nonca
 
    【评论/通讯/其他（editorial_comment_letter / other）】一律为 false
 
-   注意：仅"使用" NNAA（蛋白标记/click反应/成像等）而无制备/通路内容 → pass_filter 必须为 false，无论哪种文章类型
+   ★ 强制排除（无论哪种类型）：
+   - 仅"使用" NNAA（蛋白标记/click反应/成像/交联）而无制备/通路内容 → pass_filter=false
+   - 化合物是天然氨基酸（GABA、精氨酸、瓜氨酸的普通生理研究等）→ pass_filter=false
+   - 无法在标题/摘要中找到明确的氨基酸化合物名称 → pass_filter=false
 
 6) rationale_zh: 1-2句中文理由。pass=false 时须明确说明原因：
-   若非 NNAA 化合物 → 说明实际研究的是什么
+   若非 NNAA 化合物 → 说明实际研究的是什么化合物
    若纯应用 → 说明"仅使用已知ncAA做X，未报告合成或通路"
    若缺乏通路/合成内容 → 说明文献内容是什么
+   若短缩写词碰撞 → 说明该词在文中的实际含义
 
 7) nnaa_category: "pathway"|"enzymatic"|"fermentation"|"chemical"|"hybrid"|"gce"|"both"|"unclear"|"neither"
 
