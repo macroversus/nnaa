@@ -230,15 +230,40 @@ _BASE_SYSTEM = """你是非天然氨基酸（NNAA / unnatural amino acid / nonca
 【输出字段（JSON 数组，每项必含 doi）】
 ══════════════════════════════════════════════
 1) article_type: "review" | "research_article" | "editorial_comment_letter" | "other"
-2) domain_relevant: true/false — 按以上三步判断
+
+2) domain_relevant: true/false — 按以上三步判断，NNAA 是否为核心研究对象。
+
 3) has_experiment: "yes" | "no" | "unclear"
-4) pass_filter: true/false — 同时满足：① 非 review/editorial；② domain_relevant=true；③ has_experiment=yes 或 unclear
-5) rationale_zh: 1-2句中文理由。若拒绝，**必须明确说明**文献实际研究的是什么化合物（非笼统说"不相关"）。
-6) nnaa_category: "pathway"|"enzymatic"|"fermentation"|"chemical"|"hybrid"|"gce"|"both"|"unclear"|"neither"
-   — gce=遗传密码扩展（aaRS/tRNA 系统整合 NNAA 到蛋白质）
-7) synthesis_method: "enzymatic"|"fermentation"|"chemical"|"hybrid"|"multiple"|"unclear"|"none"
-8) has_pathway_or_synthesis: "yes"|"no"|"unclear"
-9) compound_name: 文献核心 NNAA 化合物名（英文通用名或缩写，多个逗号分隔，最多5个；非 NNAA 或不明确填 ""）
+
+4) has_pathway_or_synthesis: "yes" | "no" | "unclear"
+   文献是否明确包含以下任一可供数据库使用的内容：
+   → yes：有具体 NNAA 代谢/生物合成通路（酶、基因、底物、产物）
+   → yes：有具体 NNAA 化学合成路线（反应步骤、试剂、收率、ee值）
+   → yes：有 NNAA 酶法制备工艺（酶种类、反应条件、转化率）
+   → yes：有 NNAA 发酵/代谢工程生产方案（菌株改造、滴度、产率）
+   → yes：有 NNAA 前体/中间体的合成分析
+   → unclear：摘要提示有上述内容但细节不足以判断
+   → no：文献只是"使用"已知 NNAA（蛋白标记/click chemistry/生物成像等），未报告如何制备
+   → no：只研究 NNAA 结构、性质、生物活性，无合成/通路信息
+
+5) pass_filter: true/false
+   **同时满足以下四点才为 true：**
+   ① article_type 不是 review 或 editorial_comment_letter
+   ② domain_relevant = true
+   ③ has_experiment = yes 或 unclear
+   ④ has_pathway_or_synthesis = yes 或 unclear
+   注意：仅"使用" NNAA（只做蛋白标记/click反应/成像/结构研究而无制备内容）→ pass_filter 必须为 false
+
+6) rationale_zh: 1-2句中文理由。pass=false 时须明确说明原因：
+   若非 NNAA 化合物 → 说明实际研究的是什么
+   若纯应用 → 说明"仅使用已知ncAA做X，未报告合成或通路"
+   若缺乏通路/合成内容 → 说明文献内容是什么
+
+7) nnaa_category: "pathway"|"enzymatic"|"fermentation"|"chemical"|"hybrid"|"gce"|"both"|"unclear"|"neither"
+
+8) synthesis_method: "enzymatic"|"fermentation"|"chemical"|"hybrid"|"multiple"|"unclear"|"none"
+
+9) compound_name: 文献核心 NNAA 化合物名（英文通用名或缩写，逗号分隔，最多5个；非 NNAA 填 ""）
 
 只输出 JSON 数组，不要 Markdown 代码围栏，不要其它文字。"""
 
