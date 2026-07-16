@@ -247,12 +247,20 @@ _BASE_SYSTEM = """你是非天然氨基酸（NNAA / unnatural amino acid / nonca
    → no：只研究 NNAA 结构、性质、生物活性，无合成/通路信息
 
 5) pass_filter: true/false
-   **同时满足以下四点才为 true：**
-   ① article_type 不是 review 或 editorial_comment_letter
-   ② domain_relevant = true
-   ③ has_experiment = yes 或 unclear
-   ④ has_pathway_or_synthesis = yes 或 unclear
-   注意：仅"使用" NNAA（只做蛋白标记/click反应/成像/结构研究而无制备内容）→ pass_filter 必须为 false
+   按文章类型分两套规则：
+
+   【综述（review）】满足以下两点即为 true：
+   ① domain_relevant = true
+   ② has_pathway_or_synthesis = yes 或 unclear（综述涵盖 NNAA 通路/合成方法，对数据库构建有参考价值）
+
+   【研究论文（research_article）】同时满足以下三点才为 true：
+   ① domain_relevant = true
+   ② has_experiment = yes 或 unclear
+   ③ has_pathway_or_synthesis = yes 或 unclear
+
+   【评论/通讯/其他（editorial_comment_letter / other）】一律为 false
+
+   注意：仅"使用" NNAA（蛋白标记/click反应/成像等）而无制备/通路内容 → pass_filter 必须为 false，无论哪种文章类型
 
 6) rationale_zh: 1-2句中文理由。pass=false 时须明确说明原因：
    若非 NNAA 化合物 → 说明实际研究的是什么
