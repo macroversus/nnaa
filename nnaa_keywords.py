@@ -2,10 +2,10 @@
 非天然氨基酸（NNAA）文献检索关键词库
 
 设计原则：
-1. 覆盖范围严格限定于 PDF《Derivative of Natural AA》中列出的全部化合物
+1. 按结构母体分组，构建 OR 检索块，再与各轨道工艺词组合
 2. 每个化合物收录主名 + 所有常见别称/同义词（IUPAC 名、俗名、缩写、立体前缀变体）
-3. 按结构母体分组，构建 OR 检索块，再与各轨道工艺词组合
-4. 不收录 PDF 未提及的化合物（如 genetic code expansion 等基因编码扩展主题）
+3. 包含 GCE（遗传密码扩展）专属轨道，覆盖 aaRS/tRNA 相关高频 ncAA 化合物
+4. 化合物来源：PDF《Derivative of Natural AA》+ iNCLusive 数据库高频化合物
 """
 
 from __future__ import annotations
@@ -427,6 +427,108 @@ BETA_AA_NAMES: Sequence[str] = (
     "beta-amino acid synthesis",
 )
 
+# ---------------------------------------------------------------------------
+# GCE 专属化合物（来自 iNCLusive 高频 ncAA，遗传密码扩展中最常见的化合物）
+# 这些化合物的合成/应用/代谢通路均在 GCE 轨道中检索
+# ---------------------------------------------------------------------------
+GCE_COMPOUND_NAMES: Sequence[str] = (
+    # ── 苯丙氨酸衍生物（Phe-based, click chemistry / photo-crosslinking）──
+    # pAzF / AzF — p-azidophenylalanine（最常见 GCE ncAA）
+    "p-azidophenylalanine", "para-azidophenylalanine",
+    "4-azidophenylalanine", "4-azido-L-phenylalanine",
+    "p-azido-L-phenylalanine", "pAzF", "AzF",
+    # pBpa / Bpa — p-benzoylphenylalanine（光交联探针）
+    "p-benzoylphenylalanine", "para-benzoylphenylalanine",
+    "4-benzoylphenylalanine", "4-benzoyl-L-phenylalanine",
+    "p-benzoyl-L-phenylalanine", "pBpa", "Bpa",
+    # pAcF / pAcPhe / AcF — p-acetylphenylalanine（生物正交 oxime/hydrazone）
+    "p-acetylphenylalanine", "para-acetylphenylalanine",
+    "4-acetylphenylalanine", "4-acetyl-L-phenylalanine",
+    "p-acetyl-L-phenylalanine", "pAcF", "pAcPhe", "AcF",
+    # pNO2F / pNBF — p-nitrophenylalanine
+    "p-nitrophenylalanine", "4-nitrophenylalanine",
+    "para-nitrophenylalanine", "4-nitro-L-phenylalanine",
+    # pIF — p-iodophenylalanine
+    "p-iodophenylalanine", "4-iodophenylalanine",
+    "para-iodophenylalanine",
+    # pBrF — p-bromophenylalanine
+    "p-bromophenylalanine", "4-bromophenylalanine",
+    # pCNF — p-cyanophenylalanine (same as 4-CN-Phe above, add abbreviation)
+    "pCNF",
+    # MeaF — meta-aminophenylalanine
+    "meta-aminophenylalanine", "3-aminophenylalanine",
+    # AzAla — beta-azidoalanine
+    "azidoalanine", "beta-azidoalanine", "2-amino-3-azidopropanoic acid",
+    # ── 酪氨酸衍生物（Tyr-based）──
+    # nitroTyr — 3-nitrotyrosine（广泛用于 GCE 和蛋白质修饰研究）
+    "3-nitrotyrosine", "nitrotyrosine", "3-nitro-L-tyrosine",
+    "nitroTyr", "L-3-nitrotyrosine",
+    # DOPA — L-DOPA / 3,4-dihydroxyphenylalanine
+    "3,4-dihydroxyphenylalanine", "L-DOPA", "levodopa",
+    "3,4-dihydroxy-L-phenylalanine", "DOPA",
+    # ONBY — o-nitrobenzyl tyrosine（光脱保护 ncAA）
+    "o-nitrobenzyltyrosine", "ortho-nitrobenzyltyrosine",
+    "2-nitrobenzyltyrosine", "ONBY",
+    # BetY / sTyr — sulfotyrosine
+    "sulfotyrosine", "O-sulfo-L-tyrosine", "sTyr",
+    # OpgY — O-phosphoglycol tyrosine
+    "phosphoglycol tyrosine",
+    # ── 赖氨酸衍生物（Lys-based, GCE epigenetics / bioorthogonal）──
+    # BocK — Nε-Boc-L-lysine
+    "N-epsilon-Boc-lysine", "Nepsilon-tert-butoxycarbonyllysine",
+    "Boc-lysine", "BocK", "Nε-Boc-lysine",
+    # AllocK / AlocK — Nε-allyloxycarbonyl-L-lysine
+    "N6-allyloxycarbonyllysine", "N-epsilon-allyloxycarbonyllysine",
+    "N6-[(allyloxy)carbonyl]-L-lysine", "AllocK", "AlocK",
+    # PrK / ProK — propargyllysine / Nε-propargyloxycarbonyl-lysine
+    "propargyllysine", "N-epsilon-propargyllysine",
+    "Nε-propargyloxycarbonyl-lysine", "PrK", "ProK",
+    # AcK — Nε-acetyllysine（also in LYS list, add abbreviation）
+    "AcK",
+    # BCNK — bicyclononyne lysine
+    "bicyclononyne lysine", "Nε-bicyclononyneoxycarbonyl-lysine",
+    "BCNK",
+    # TCO*K — trans-cyclooctene lysine
+    "trans-cyclooctene lysine", "TCO*K", "TCO-lysine",
+    # AzK — azide lysine
+    "azide lysine", "Nε-azidolysine", "AzK",
+    # CrK — crotonyllysine
+    "crotonyllysine", "Nε-crotonyl-lysine", "CrK",
+    # ThrK — threonyl lysine
+    "threonyl lysine", "ThrK",
+    # VtK — vinyl thioether lysine
+    "VtK",
+    # NAEK — Nε-azidoethyloxycarbonyllysine
+    "NAEK",
+    # AbK — AbK
+    "AbK",
+    # DiZPK
+    "diazidopropionyl lysine", "DiZPK",
+    # TMSK
+    "TMSK",
+    # ── 丝氨酸/苏氨酸衍生物（phosphorylation signals）──
+    # Sep — phosphoserine
+    "phosphoserine", "O-phosphoserine", "L-phosphoserine",
+    "O-phospho-L-serine", "Sep",
+    # pSer — phosphoserine abbreviation
+    "pSer",
+    # ── 色氨酸衍生物（Trp-based）──
+    # Acd — acridonylalanine
+    "acridonylalanine", "Acd",
+    # ── 荧光/功能性 ncAA ──
+    # Cou — coumaryl amino acid
+    "coumaryl amino acid", "coumarinaianine", "Cou",
+    # ANL — azidonorleucine（甲硫氨酸类似物，广泛用于 BONCAT）
+    "azidonorleucine", "L-azidonorleucine",
+    "2-amino-6-azidohexanoic acid", "ANL",
+    # Azi — azidophenylalanine variants
+    "Azi",
+    # ── 通用 GCE 相关化合物类别 ──
+    "pyrrolysine", "Pyl", "L-pyrrolysine",
+    "(2R)-2-amino-3-(((2S,3R)-3-methyl-2-[(1-oxopyrrolidin-2-ylidene)amino]butanoyl)oxy)propanoic acid",
+    "selenocysteine", "selenocysteine amino acid",
+)
+
 # ===========================================================================
 # 第二部分：合并全部化合物名 → 用于 CrossRef
 # ===========================================================================
@@ -443,6 +545,7 @@ ALL_PDF_COMPOUND_NAMES: Sequence[str] = (
     *GLY_PEPTOID_NAMES,
     *ASP_ASN_COMPOUND_NAMES,
     *BETA_AA_NAMES,
+    *GCE_COMPOUND_NAMES,
 )
 
 # ===========================================================================
@@ -505,6 +608,31 @@ _NNAA_GENERIC = (
     "OR noncanonical amino acid[Title/Abstract] OR non-canonical amino acid[Title/Abstract] "
     "OR ncAA[Title/Abstract]"
 )
+
+# --- GCE 遗传密码扩展专属信号词 ---
+# aaRS 系统名（最高特异性，几乎仅出现在 GCE 论文中）
+_GCE_AARS = (
+    "PylRS[Title/Abstract] OR MjTyrRS[Title/Abstract] OR EcTyrRS[Title/Abstract] "
+    "OR MmPylRS[Title/Abstract] OR MbPylRS[Title/Abstract] "
+    "OR pyrrolysyl-tRNA synthetase[Title/Abstract] "
+    "OR orthogonal aminoacyl-tRNA synthetase[Title/Abstract]"
+)
+# GCE 方法学词（通用性稍宽，但与 ncAA 组合精确）
+_GCE_METHOD = (
+    "genetic code expansion[Title/Abstract] OR expanded genetic code[Title/Abstract] "
+    "OR amber suppression[Title/Abstract] OR stop codon suppression[Title/Abstract] "
+    "OR orthogonal tRNA[Title/Abstract] OR unnatural amino acid incorporation[Title/Abstract] "
+    "OR noncanonical amino acid incorporation[Title/Abstract] "
+    "OR non-canonical amino acid incorporation[Title/Abstract]"
+)
+# GCE 高频化合物块
+_PM_GCE_COMPOUNDS = _pm_block((
+    "p-azidophenylalanine", "p-benzoylphenylalanine", "p-acetylphenylalanine",
+    "4-azidophenylalanine", "4-benzoylphenylalanine", "4-acetylphenylalanine",
+    "phosphoserine", "3-nitrotyrosine", "pyrrolysine",
+    "azidonorleucine", "propargyllysine", "trans-cyclooctene lysine",
+    "DOPA", "3,4-dihydroxyphenylalanine",
+))
 
 # --- 代谢通路（pathway） ---
 PUBMED_PATHWAY_QUERIES: Sequence[str] = (
@@ -592,6 +720,29 @@ PUBMED_HYBRID_QUERIES: Sequence[str] = (
     f"({_NNAA_GENERIC}) AND ({_HYB_SIG})",
 )
 
+# --- GCE 遗传密码扩展（gce）---
+# 覆盖 aaRS/tRNA 系统介导的 ncAA 蛋白质整合、应用及相关合成研究
+PUBMED_GCE_QUERIES: Sequence[str] = (
+    # 方法学词（最高精度）
+    f"({_GCE_METHOD})",
+    # aaRS 系统名（最高特异性）
+    f"({_GCE_AARS})",
+    # GCE 高频化合物 + 方法学词组合
+    f"({_PM_GCE_COMPOUNDS}) AND ({_GCE_METHOD})",
+    # GCE 化合物 + aaRS/tRNA 信号
+    f"({_PM_GCE_COMPOUNDS}) AND ({_GCE_AARS})",
+    # 广义 NNAA + GCE 方法
+    f"({_NNAA_GENERIC}) AND ({_GCE_METHOD})",
+    # 具体化合物独立检索（高频化合物，补充未用 GCE 术语但明确是 GCE 工作的论文）
+    "p-azidophenylalanine[Title/Abstract]",
+    "p-benzoylphenylalanine[Title/Abstract]",
+    "p-acetylphenylalanine[Title/Abstract]",
+    "pyrrolysine[Title/Abstract]",
+    "phosphoserine[Title/Abstract] AND (protein incorporation[Title/Abstract] OR aaRS[Title/Abstract] OR amber[Title/Abstract])",
+    "3-nitrotyrosine[Title/Abstract] AND (genetic code[Title/Abstract] OR protein[Title/Abstract])",
+    "azidonorleucine[Title/Abstract]",
+)
+
 # ===========================================================================
 # 第五部分：CrossRef 信号词（按轨道）
 # ===========================================================================
@@ -662,6 +813,38 @@ _CR_HYB_METHODS: Sequence[str] = (
     "hybrid catalysis",
     "sequential chemoenzymatic",
     "enzyme chemical cascade",
+)
+
+# GCE 专属 CrossRef 检索词（精度极高）
+_CR_GCE_METHODS: Sequence[str] = (
+    "genetic code expansion",
+    "expanded genetic code",
+    "amber suppression",
+    "stop codon suppression",
+    "orthogonal tRNA synthetase",
+    "pyrrolysyl-tRNA synthetase",
+    "PylRS",
+    "MjTyrRS",
+    "unnatural amino acid incorporation",
+    "noncanonical amino acid incorporation",
+    "site-specific incorporation",
+    "orthogonal aaRS",
+)
+
+# GCE 高频化合物（CrossRef 短语效果好）
+_CR_GCE_COMPOUNDS: Sequence[str] = (
+    "p-azidophenylalanine",
+    "p-benzoylphenylalanine",
+    "p-acetylphenylalanine",
+    "4-azidophenylalanine",
+    "4-benzoylphenylalanine",
+    "phosphoserine",
+    "3-nitrotyrosine",
+    "pyrrolysine",
+    "azidonorleucine",
+    "propargyllysine",
+    "trans-cyclooctene lysine",
+    "3,4-dihydroxyphenylalanine",
 )
 
 # 高优先级化合物简名（CrossRef 短语效果好）
@@ -744,7 +927,10 @@ PUBMED_QUERIES_BY_TRACK: Dict[str, Sequence[str]] = {
     "fermentation": PUBMED_FERMENTATION_QUERIES,
     "chemical":     PUBMED_CHEMICAL_QUERIES,
     "hybrid":       PUBMED_HYBRID_QUERIES,
+    "gce":          PUBMED_GCE_QUERIES,
 }
+
+GCE_SIGNALS_EN: Sequence[str] = (*_CR_GCE_COMPOUNDS, *_CR_GCE_METHODS)
 
 CROSSREF_SIGNALS_BY_TRACK: Dict[str, Sequence[str]] = {
     "pathway":      PATHWAY_SIGNALS_EN,
@@ -752,6 +938,7 @@ CROSSREF_SIGNALS_BY_TRACK: Dict[str, Sequence[str]] = {
     "fermentation": FERMENTATION_SIGNALS_EN,
     "chemical":     CHEMICAL_SIGNALS_EN,
     "hybrid":       HYBRID_SIGNALS_EN,
+    "gce":          GCE_SIGNALS_EN,
 }
 
 
@@ -777,6 +964,7 @@ def build_crossref_queries(track: str, max_queries: Optional[int] = None) -> Lis
         "fermentation": _CR_FERM_METHODS,
         "chemical":     _CR_CHEM_METHODS,
         "hybrid":       _CR_HYB_METHODS,
+        "gce":          _CR_GCE_METHODS,
     }
     method_signals = method_signals_map.get(track)
     if not method_signals:
@@ -792,6 +980,13 @@ def build_crossref_queries(track: str, max_queries: Optional[int] = None) -> Lis
             "sequential enzymatic chemical amino acid",
         ]
         queries.extend(extras)
+        if max_queries is not None and max_queries > 0:
+            return queries[:max_queries]
+    if track == "gce":
+        # GCE track: 化合物 × 方法词 + 纯方法词
+        queries = _pair_crossref(_CR_GCE_COMPOUNDS, _CR_GCE_METHODS, max_queries)
+        extras_gce = list(_CR_GCE_METHODS)  # 方法词独立作为查询
+        queries.extend(extras_gce)
         if max_queries is not None and max_queries > 0:
             return queries[:max_queries]
     return queries

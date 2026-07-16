@@ -29,7 +29,7 @@ _TRACK_ORDER = {track: idx for idx, track in enumerate(ALL_NNAA_TRACKS)}
 _TRACK_ORDER[""] = len(ALL_NNAA_TRACKS)
 
 _VALID_NNAA_CATEGORIES = frozenset(
-    {"pathway", "enzymatic", "fermentation", "chemical", "hybrid", "both", "unclear", "neither"}
+    {"pathway", "enzymatic", "fermentation", "chemical", "hybrid", "gce", "both", "unclear", "neither"}
 )
 _VALID_SYNTHESIS_METHODS = frozenset(
     {"enzymatic", "fermentation", "chemical", "hybrid", "multiple", "unclear", "none"}
@@ -171,29 +171,74 @@ _BASE_SYSTEM = """你是非天然氨基酸（NNAA / unnatural amino acid / nonca
 输入为 JSON 数组，每项有一条文献的 doi、title、journal、pub_date、source、nnaa_track、pmid、publication_types、abstract。
 请对**每一条**输出一个判断对象，组成 JSON 数组，顺序与输入一致，且每个对象必须包含字段 doi（与输入一致）。
 
-【核心判定原则】
-文献的**核心研究对象**必须是非天然氨基酸（NNAA）本身，才能认定为相关。
-- NNAA 范围：不存在于标准蛋白质编码体系的氨基酸，包括 norvaline、norleucine、tert-leucine、Aib（alpha-aminoisobutyric acid）、homoarginine、citrulline、ornithine（作为 NNAA 前体时）、4-hydroxyproline、pipecolic acid、D-氨基酸、fluorophenylalanine、naphthylalanine、5-hydroxytryptophan 等，以及以上化合物的合成/代谢/应用。
-- 以下情形即使涉及氨基酸、代谢工程、发酵也必须标 domain_relevant=false：
-  * 研究对象为天然氨基酸（甘氨酸、丙氨酸、谷氨酸、谷氨酰胺、赖氨酸（本身非NNAA）等）的普通生产
-  * 研究对象为脂肪酸、有机酸（谷氨酸、戊二酸、衣康酸、对香豆酸等）、多糖、生物碱、萜类等**非氨基酸**的合成/代谢
-  * 研究主题为植物发育、病原体互作、基因组学、转录组学，仅提及氨基酸或代谢通路作为背景
-  * 文章虽然研究"手性化合物"或"生物催化"但未明确涉及 NNAA 化合物
+══════════════════════════════════════════════
+【第一步：化合物识别——它是氨基酸吗？】
+══════════════════════════════════════════════
+首先判断文献的核心研究化合物是否属于氨基酸类（α-氨基酸、β-氨基酸、N-取代氨基酸、氨基酸衍生物）。
+如果核心研究对象不是氨基酸，直接 domain_relevant=false，不需要继续判断。
 
-判断字段：
+明确**不是**氨基酸的化合物（这些出现时直接排除）：
+  ✗ 糖类：葡萄糖、蔗糖、淀粉、壳聚糖、透明质酸、麦芽糖、纤维素等
+  ✗ 萜类：紫杉醇、青蒿素、倍半萜、单萜、二萜、三萜等
+  ✗ 生物碱：长春碱、喜树碱、可卡因等（虽含氮但非氨基酸）
+  ✗ 有机酸/聚酮：衣康酸、戊二酸、对香豆酸、丙烯酸、琥珀酸、己二酸等
+  ✗ 维生素：维生素B12、维生素C、叶酸等
+  ✗ 核苷/核苷酸：ATP、NAD、CoA 等
+  ✗ 脂肪酸/聚羟基脂肪酸（PHA/PHB）：癸二酸、油酸等
+  ✗ 醇类：1,3-丙二醇、丁二醇等
+  ✗ 芳香族化合物（非氨基酸骨架）：苯乙烯、肉桂酸、对苯二酚等
+  注意：以上化合物在代谢工程论文中频繁出现，但不属于 NNAA 范畴。
+
+══════════════════════════════════════════════
+【第二步：是天然蛋白质氨基酸还是非天然氨基酸？】
+══════════════════════════════════════════════
+20 种标准蛋白质氨基酸：Gly, Ala, Val, Leu, Ile, Pro, Phe, Trp, Met, Ser, Thr, Cys, Tyr, His, Asp, Glu, Asn, Gln, Lys, Arg。
+以下情形即使研究的是天然氨基酸本身，也必须 domain_relevant=false：
+  ✗ 谷氨酸（glutamic acid / monosodium glutamate）的发酵生产
+  ✗ 赖氨酸（L-lysine）的工业发酵（作为饲料添加剂）
+  ✗ 色氨酸、苏氨酸等天然氨基酸的普通代谢研究
+  ✗ 仅研究天然氨基酸的代谢通路作为背景信息
+
+例外：下列"天然"氨基酸在 NNAA 研究中有特殊地位，若文献以其为 NNAA 工具/底物则相关：
+  △ 鸟氨酸 (ornithine)、瓜氨酸 (citrulline) — 作为 NNAA 代谢前体/中间体
+  △ 硒代半胱氨酸 (selenocysteine)、吡咯赖氨酸 (pyrrolysine) — 第21/22种天然 AA，GCE 研究核心
+  △ 羟脯氨酸 (hydroxyproline)、磷酸丝氨酸 (phosphoserine) — 翻译后修饰研究
+
+══════════════════════════════════════════════
+【第三步：NNAA 研究范畴认定（需通过前两步）】
+══════════════════════════════════════════════
+认定为相关（domain_relevant=true）的情形：
+  ✓ NNAA 的化学合成、不对称合成、立体选择性制备
+  ✓ NNAA 的酶法合成（转氨酶、氨酰-tRNA 合成酶催化等）
+  ✓ NNAA 的发酵/代谢工程生产（细胞工厂）
+  ✓ NNAA 的生物合成/代谢通路研究（途径重构、前体供给等）
+  ✓ 遗传密码扩展（GCE）：aaRS/tRNA 系统介导的 NNAA 蛋白质整合
+  ✓ NNAA 在多肽、拟肽、肽类药物中的应用（以 NNAA 为核心）
+  ✓ NNAA 的结构、性质、生物活性研究
+  ✓ D-氨基酸的合成、代谢、转化
+
+典型 NNAA 化合物（见到即相关）：
+  norvaline, norleucine, tert-leucine, Aib, alpha-aminoisobutyric acid,
+  cyclohexylalanine, 4-fluorophenylalanine, naphthylalanine, biphenylalanine,
+  4-hydroxyproline, pipecolic acid, citrulline (as NNAA), homoarginine,
+  5-hydroxytryptophan, D-amino acids (D-Ala, D-Phe etc.), beta-amino acids,
+  p-azidophenylalanine, p-benzoylphenylalanine, p-acetylphenylalanine,
+  BocK, AllocK, propargyllysine, phosphoserine, 3-nitrotyrosine, pyrrolysine,
+  azidonorleucine, DOPA (3,4-dihydroxyphenylalanine)
+
+══════════════════════════════════════════════
+【输出字段（JSON 数组，每项必含 doi）】
+══════════════════════════════════════════════
 1) article_type: "review" | "research_article" | "editorial_comment_letter" | "other"
-2) domain_relevant: true/false — 文献核心是否聚焦 NNAA 的合成、代谢通路或在蛋白质/肽链中的应用；不符合上述核心原则则 false。
-3) has_experiment: "yes" | "no" | "unclear" — 是否包含实验（体外酶促、发酵、化学合成、细胞/动物实验等）。
-4) pass_filter: true/false — 同时满足以下三点才能为 true：① 非 review/editorial；② domain_relevant=true；③ has_experiment 为 yes 或 unclear（且标题/摘要强烈暗示有实验）。
-5) rationale_zh: 一两句中文理由，若拒绝请指出文献实际研究的是什么化合物/主题。
-6) nnaa_category: "pathway" | "enzymatic" | "fermentation" | "chemical" | "hybrid" | "both" | "unclear" | "neither"
-   — pathway=NNAA 生物合成/降解通路；enzymatic=酶法制备 NNAA；fermentation=细胞工厂发酵生产 NNAA；chemical=化学路线合成 NNAA；hybrid=酶-化学联用；both=同时涵盖通路+合成；neither=非 NNAA 主题。
-7) synthesis_method: "enzymatic" | "fermentation" | "chemical" | "hybrid" | "multiple" | "unclear" | "none"
-   — 文献重点报道的 NNAA 合成/制备方法；纯通路研究无合成可标 none；domain_relevant=false 时填 "none"。
-8) has_pathway_or_synthesis: "yes" | "no" | "unclear" — 是否明确报道 NNAA 代谢通路或具体合成路线/制备工艺。
-9) compound_name: 文献中明确报道的**非天然**氨基酸化合物名称（用最通用英文名或缩写，多个用英文逗号分隔，最多5个）。
-   若文献研究的不是 NNAA，或未明确涉及具体 NNAA 化合物则填 ""。
-   示例："norvaline, 4-fluorophenylalanine" 或 "Aib" 或 "4-hydroxyproline, pipecolic acid"
+2) domain_relevant: true/false — 按以上三步判断
+3) has_experiment: "yes" | "no" | "unclear"
+4) pass_filter: true/false — 同时满足：① 非 review/editorial；② domain_relevant=true；③ has_experiment=yes 或 unclear
+5) rationale_zh: 1-2句中文理由。若拒绝，**必须明确说明**文献实际研究的是什么化合物（非笼统说"不相关"）。
+6) nnaa_category: "pathway"|"enzymatic"|"fermentation"|"chemical"|"hybrid"|"gce"|"both"|"unclear"|"neither"
+   — gce=遗传密码扩展（aaRS/tRNA 系统整合 NNAA 到蛋白质）
+7) synthesis_method: "enzymatic"|"fermentation"|"chemical"|"hybrid"|"multiple"|"unclear"|"none"
+8) has_pathway_or_synthesis: "yes"|"no"|"unclear"
+9) compound_name: 文献核心 NNAA 化合物名（英文通用名或缩写，多个逗号分隔，最多5个；非 NNAA 或不明确填 ""）
 
 只输出 JSON 数组，不要 Markdown 代码围栏，不要其它文字。"""
 
@@ -201,19 +246,31 @@ _TRACK_FOCUS = {
     "pathway": """
 当前轨道：非天然氨基酸代谢通路（pathway）。
 重点：NNAA 生物合成/降解通路、NNAA 代谢工程、途径重构、前体供给、转运、调控、合成生物学底盘中的 NNAA 代谢网络。
-注意：文献主题必须是 NNAA（非天然氨基酸）的通路，研究天然氨基酸代谢、脂肪酸、有机酸或其它化合物的通路不算相关。""",
+严格过滤：文献主题必须是 NNAA 的通路。以下情形绝对排除：
+  - 研究天然氨基酸（谷氨酸、赖氨酸等）代谢通路（非作为 NNAA 前体）
+  - 研究有机酸、脂肪酸、萜类、维生素等非氨基酸化合物的代谢通路
+  - 通路只作为背景信息，核心研究的化合物不是 NNAA""",
     "enzymatic": """
 当前轨道：酶法合成（enzymatic）。
-重点：转氨酶/氨转移酶、氨酰-tRNA 合成酶、酶级联、体外翻译、酶促偶联等 NNAA 酶法制备。""",
+重点：转氨酶/氨转移酶、氨酰-tRNA 合成酶、酶级联、体外翻译、酶促偶联等 NNAA 酶法制备。
+严格过滤：酶的底物或产物必须是 NNAA；仅研究酶的结构/机理但不制备 NNAA 则排除。""",
     "fermentation": """
 当前轨道：生物发酵（fermentation）。
-重点：大肠杆菌/酵母/谷氨酸棒杆菌等微生物细胞工厂、发酵代谢流改造、全细胞催化生产 NNAA。""",
+重点：大肠杆菌/酵母/谷氨酸棒杆菌等微生物细胞工厂、发酵代谢流改造、全细胞催化生产 NNAA。
+严格过滤：发酵目标产物必须是 NNAA；生产天然氨基酸（谷氨酸、赖氨酸等）的发酵工艺绝对排除。""",
     "chemical": """
 当前轨道：化学合成（chemical）。
-重点：NNAA 不对称合成、全合成、有机催化、光/redox 驱动、保护基/手性诱导等化学路线。""",
+重点：NNAA 不对称合成、全合成、有机催化、光/redox 驱动、保护基/手性诱导等化学路线。
+严格过滤：合成目标必须是 NNAA；合成其他手性化合物（糖、萜类等）不相关。""",
     "hybrid": """
 当前轨道：酶-化学联用（hybrid）。
 重点：chemoenzymatic、one-pot 多步、酶促步骤与化学步骤串联/并联的 NNAA 制备策略。""",
+    "gce": """
+当前轨道：遗传密码扩展（GCE）。
+重点：aaRS/tRNA 系统介导的 NNAA 定点整合到蛋白质、amber suppression（TAG/TGA 密码子抑制）、
+       遗传密码扩展的 ncAA（p-azidophenylalanine、p-benzoylphenylalanine、propargyllysine 等）、
+       aaRS 工程化（MjTyrRS、PylRS、EcTyrRS 等）、正交 tRNA/aaRS 对、GCE 应用（蛋白质标记、交联、生物正交化学）。
+注意：GCE 论文的核心化合物是 ncAA，即使文章重点在蛋白质工程，也应认定为 domain_relevant=true。""",
 }
 
 _DEFAULT_FOCUS = """

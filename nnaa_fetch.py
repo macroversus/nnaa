@@ -236,7 +236,7 @@ def build_parser() -> argparse.ArgumentParser:
     common.add_argument("--date-to", metavar="YYYY-MM-DD", help="检索截止日期")
     common.add_argument(
         "--track",
-        choices=["pathway", "enzymatic", "fermentation", "chemical", "hybrid", "all"],
+        choices=["pathway", "enzymatic", "fermentation", "chemical", "hybrid", "gce", "all"],
         default="all",
         help="检索轨道",
     )

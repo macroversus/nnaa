@@ -5,8 +5,8 @@ from typing import List, Optional
 
 logger = logging.getLogger(__name__)
 
-VALID_NNAA_TRACKS = frozenset({"pathway", "enzymatic", "fermentation", "chemical", "hybrid", "all"})
-ALL_NNAA_TRACKS = ["pathway", "enzymatic", "fermentation", "chemical", "hybrid"]
+VALID_NNAA_TRACKS = frozenset({"pathway", "enzymatic", "fermentation", "chemical", "hybrid", "gce", "all"})
+ALL_NNAA_TRACKS = ["pathway", "enzymatic", "fermentation", "chemical", "hybrid", "gce"]
 
 
 def resolve_nnaa_tracks(cli_value: Optional[str]) -> List[str]:
@@ -17,7 +17,7 @@ def resolve_nnaa_tracks(cli_value: Optional[str]) -> List[str]:
         return [value]
     raise ValueError(
         f"无效的 --nnaa-track: {cli_value!r}，可选 "
-        "pathway | enzymatic | fermentation | chemical | hybrid | all"
+        "pathway | enzymatic | fermentation | chemical | hybrid | gce | all"
     )
 
 
