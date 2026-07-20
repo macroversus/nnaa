@@ -523,6 +523,53 @@ GCE_COMPOUND_NAMES: Sequence[str] = (
     "2-amino-6-azidohexanoic acid", "ANL",
     # Azi — azidophenylalanine variants
     "Azi",
+    # ── 更多 Phe 衍生物（bioorthogonal，来自 iNCLusive 高频数据）──
+    # pCNF — p-cyanophenylalanine
+    "p-cyanophenylalanine", "4-cyanophenylalanine", "para-cyanophenylalanine",
+    "4-cyano-L-phenylalanine", "pCNF",
+    # pBoF — p-boronophenylalanine
+    "p-boronophenylalanine", "4-boronophenylalanine", "para-boronophenylalanine",
+    "4-borono-L-phenylalanine", "pBoF",
+    # pPrOF — p-propargyloxyphenylalanine
+    "p-propargyloxyphenylalanine", "4-propargyloxyphenylalanine",
+    "O-propargyl-tyrosine", "O-propargyl-L-tyrosine", "pPrOF", "OPgY",
+    # ClAcF — p-chloroacetamidophenylalanine
+    "p-chloroacetamidophenylalanine", "4-chloroacetamidophenylalanine",
+    # 3-Amino-Tyr / 3-AminoTyr
+    "3-aminotyrosine", "3-amino-L-tyrosine",
+    # o-NB-Glu — o-nitrobenzyl-glutamic acid (photocaged)
+    "o-nitrobenzyl-L-glutamic acid", "O-nitrobenzyl glutamic acid",
+    # ── 更多 Lys 衍生物（iNCLusive 高频）──
+    # PCK — pyrroline-carboxy-lysine (pyrrolysyl analog)
+    "pyrroline-carboxy-lysine", "PCK", "pyrrolysine analog",
+    # coumarin-Lys / aminocoumarin lysine
+    "aminocoumarin lysine", "coumarin lysine",
+    "L-(7-hydroxycoumarin-4-yl)ethylglycine", "7-hydroxycoumarin alanine",
+    # NAEK variants / azidoethyloxycarbonyllysine
+    "Nε-[(2-azideoethyloxy)carbonyl]-L-lysine", "azidoethyloxycarbonyllysine",
+    # DiZ-diazirine-Lys
+    "Nε-[(2-(3-methyl-3H-diazirin-3-yl)ethoxy)carbonyl]-L-lysine",
+    "diazirine lysine", "photo-crosslinking lysine",
+    # Axial TCO-Lys
+    "axial trans-cyclooct-2-ene-L-lysine", "axial TCO-lysine",
+    # VtK — vinyl thioether lysine
+    "N6-((2-(vinylthio)ethoxy)carbonyl)-L-lysine",
+    # alkynyl-Lys
+    "N-propargyl-L-lysine", "propargyl-L-lysine",
+    "alkynyllysine", "alkynyl lysine",
+    # ── 更多 Tyr 衍生物（iNCLusive 高频）──
+    # ortho-NB-Tyr
+    "ortho-nitrobenzyl tyrosine", "O-nitrobenzyl-L-tyrosine",
+    # o-bromo-Tyr
+    "O-(2-bromoethyl)-L-tyrosine",
+    # ── Cys 衍生物 ──
+    # S-allyl-Cys
+    "S-allyl-L-cysteine", "S-allylcysteine",
+    # S-propargyl-Cys
+    "S-propargyl-L-cysteine",
+    # ── 甲硫氨酸类似物 ──
+    "azidohomoalanine", "L-azidohomoalanine", "AHA",
+    "homopropargylglycine", "L-homopropargylglycine", "HPG",
     # ── 通用 GCE 相关化合物类别 ──
     "pyrrolysine", "Pyl", "L-pyrrolysine",
     "(2R)-2-amino-3-(((2S,3R)-3-methyl-2-[(1-oxopyrrolidin-2-ylidene)amino]butanoyl)oxy)propanoic acid",

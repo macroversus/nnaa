@@ -58,12 +58,12 @@ crossref:
 article_type_filter:
   enabled: true
   exclude_publication_type_patterns:
-    - "review"
-    - "systematic review"
     - "meta-analysis"
     - "editorial"
     - "published erratum"
     - "retraction of publication"
+    - "comment"
+    - "letter"
 
 literature_cleaner:
   enabled: true
