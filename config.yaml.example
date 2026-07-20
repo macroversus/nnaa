@@ -97,7 +97,14 @@ ai_screening:
   only_keep_passed: false
   keep_on_batch_error: true
   fail_if_missing_key: false
-  extra_instructions: "非天然氨基酸（NNAA）。nnaa_category：pathway=代谢通路；enzymatic=酶法；fermentation=发酵；chemical=化学合成；hybrid=酶化学联用。"
+  extra_instructions: |
+    非天然氨基酸（NNAA）。nnaa_category：pathway=代谢通路；enzymatic=酶法；fermentation=发酵；chemical=化学合成；hybrid=酶化学联用。
+    【放宽说明】以下情形即使未具名特定 NNAA 化合物，只要内容明确属于 NNAA 合成方法学，pass_filter 仍可为 true：
+      ① 标题/摘要中含 "non-natural amino acid"、"unnatural amino acid"、"noncanonical amino acid"、
+         "ncAA"、"NNAA" 等通用术语，且文章描述了合成路线、发酵工艺、酶法策略或代谢通路
+      ② 方法学/综述性文章：系统介绍 NNAA 类合成方法或路径（无需列举具体化合物名称）
+      ③ chemoenzymatic 或 GCE 论文：以 NNAA 作为研究工具/目标，即使以缩写/系列名描述
+    【仍须排除】纯应用论文（仅使用 NNAA 进行蛋白标记/点击化学/生物正交反应，不报告制备过程）→ pass_filter=false
 
 output:
   run_dir_pattern: "%Y-%m-%d"

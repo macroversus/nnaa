@@ -598,8 +598,9 @@ _FERM_SIG   = ("fermentation[Title/Abstract] OR microbial production[Title/Abstr
 _PATH_SIG   = ("biosynthetic pathway[Title/Abstract] OR metabolic pathway[Title/Abstract] "
                "OR biosynthesis[Title/Abstract] OR de novo biosynthesis[Title/Abstract] "
                "OR pathway engineering[Title/Abstract]")
-_HYB_SIG    = ("chemoenzymatic[Title/Abstract] OR one-pot synthesis[Title/Abstract] "
-               "OR hybrid synthesis[Title/Abstract] OR sequential biocatalysis[Title/Abstract]")
+_HYB_SIG    = ("chemoenzymatic[Title/Abstract] OR chemoenzymatic synthesis[Title/Abstract] "
+               "OR sequential biocatalysis[Title/Abstract] OR one-pot biocatalysis[Title/Abstract] "
+               "OR enzyme-chemical cascade[Title/Abstract]")
 
 # 广义 NNAA 术语——用于捕捉不点名具体化合物的方法论/综合性文献
 # 注意：这些检索式召回范围更宽，依赖 AI 筛选把关
@@ -646,8 +647,8 @@ PUBMED_PATHWAY_QUERIES: Sequence[str] = (
     f"({_PM_SER}) AND ({_PATH_SIG})",
     # 高频化合物宽泛通路检索
     f"({_PM_ALL_COMPOUNDS}) AND ({_PATH_SIG})",
-    # 广义 NNAA + 通路（捕捉不列具体化合物名的代谢通路文献）
-    f"({_NNAA_GENERIC}) AND ({_PATH_SIG})",
+    # 广义 NNAA + 通路（捕捉不列具体化合物名的代谢通路文献）+ 限定英文
+    f"({_NNAA_GENERIC}) AND ({_PATH_SIG}) AND English[Language]",
 )
 
 # --- 酶法合成（enzymatic） ---
@@ -785,21 +786,18 @@ _CR_FERM_METHODS: Sequence[str] = (
     "fermentative production",
     "microbial production",
     "microbial synthesis",
-    "metabolic engineering",
-    "cell factory",
+    "metabolic engineering amino acid",
+    "cell factory amino acid",
     "whole-cell biocatalysis",
-    "recombinant strain",
-    "fed-batch fermentation",
-    "Escherichia coli",
-    "Corynebacterium glutamicum",
-    "Saccharomyces cerevisiae",
+    "recombinant strain amino acid",
+    "fed-batch fermentation amino acid",
 )
 
 _CR_PATH_METHODS: Sequence[str] = (
     "biosynthetic pathway",
-    "biosynthesis",
+    "amino acid biosynthesis",
     "de novo biosynthesis",
-    "metabolic pathway",
+    "metabolic pathway engineering",
     "pathway engineering",
     "precursor supply",
     "flux redistribution",
@@ -808,11 +806,11 @@ _CR_PATH_METHODS: Sequence[str] = (
 
 _CR_HYB_METHODS: Sequence[str] = (
     "chemoenzymatic synthesis",
-    "chemoenzymatic",
-    "one-pot synthesis",
-    "hybrid catalysis",
+    "chemoenzymatic preparation",
     "sequential chemoenzymatic",
+    "one-pot biocatalysis",
     "enzyme chemical cascade",
+    "chemoenzymatic route",
 )
 
 # GCE 专属 CrossRef 检索词（精度极高）
@@ -976,8 +974,9 @@ def build_crossref_queries(track: str, max_queries: Optional[int] = None) -> Lis
     if track == "hybrid":
         extras = [
             "chemoenzymatic synthesis amino acid",
-            "one-pot biocatalysis amino acid",
-            "sequential enzymatic chemical amino acid",
+            "one-pot chemoenzymatic amino acid",
+            "sequential chemoenzymatic amino acid synthesis",
+            "chemoenzymatic asymmetric amino acid",
         ]
         queries.extend(extras)
         if max_queries is not None and max_queries > 0:
