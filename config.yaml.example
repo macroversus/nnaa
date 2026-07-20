@@ -99,12 +99,27 @@ ai_screening:
   fail_if_missing_key: false
   extra_instructions: |
     非天然氨基酸（NNAA）。nnaa_category：pathway=代谢通路；enzymatic=酶法；fermentation=发酵；chemical=化学合成；hybrid=酶化学联用。
-    【放宽说明】以下情形即使未具名特定 NNAA 化合物，只要内容明确属于 NNAA 合成方法学，pass_filter 仍可为 true：
-      ① 标题/摘要中含 "non-natural amino acid"、"unnatural amino acid"、"noncanonical amino acid"、
-         "ncAA"、"NNAA" 等通用术语，且文章描述了合成路线、发酵工艺、酶法策略或代谢通路
-      ② 方法学/综述性文章：系统介绍 NNAA 类合成方法或路径（无需列举具体化合物名称）
-      ③ chemoenzymatic 或 GCE 论文：以 NNAA 作为研究工具/目标，即使以缩写/系列名描述
-    【仍须排除】纯应用论文（仅使用 NNAA 进行蛋白标记/点击化学/生物正交反应，不报告制备过程）→ pass_filter=false
+
+    【核心判定原则】pass_filter=true 的文章必须满足：
+      文章的核心贡献是报告一种或多种 NNAA 的"合成/制备/生产方法"，
+      包括：化学合成路线、酶法/生物催化制备、发酵工艺、代谢工程通路、生物合成基因簇功能解析、或上述方法的组合。
+
+    【可通过 pass_filter=true 的情形】
+      ① 明确报告合成路线/工艺参数（收率、e.e.、产量、滴度等）的 NNAA 制备论文
+      ② 代谢工程：报告改造微生物菌株使其合成特定 NNAA，含完整的代谢通路设计
+      ③ 生物合成基因簇：鉴定并阐明 NNAA 生物合成通路（即使应用场景为天然产物）
+      ④ 酶催化：报告酶对底物→NNAA 的转化，含具体酶学参数和转化率
+      ⑤ 含通用术语 "non-natural amino acid"/"unnatural amino acid"/"ncAA" 且明确描述合成方法学
+
+    【必须排除 pass_filter=false 的情形】
+      ① 目标化合物是20种标准氨基酸（Ala/Arg/Asn/Asp/Cys/Gln/Glu/Gly/His/Ile/Leu/Lys/Met/Phe/
+         Pro/Ser/Thr/Trp/Tyr/Val）的合成：即使方法新颖，只要产物是标准氨基酸也须排除
+      ② 疾病/医学研究：NNAA 仅作为生物标志物、病理机制组分或药物靶点，未报告其制备方案
+      ③ 纯应用研究：仅使用市售/预制 NNAA 进行蛋白标记、点击化学、生物正交反应，不含制备步骤
+      ④ 酶抑制/机制研究：以 NNAA 作为抑制剂/探针，研究酶的机制，但不描述该 NNAA 的合成方法
+      ⑤ 终产物非氨基酸：以 NNAA 作为原料底物，但反应目标产物不是氨基酸类化合物
+      ⑥ 综述/应用综述：仅回顾 NNAA 的应用（蛋白工程、化学生物学），不包含合成方法学主体内容
+      ⑦ 植物/微生物天然抗性机制：NNAA 合成仅作为生物防御功能的研究对象，且文章核心是功能而非制备
 
 output:
   run_dir_pattern: "%Y-%m-%d"

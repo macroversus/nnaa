@@ -600,7 +600,8 @@ _PATH_SIG   = ("biosynthetic pathway[Title/Abstract] OR metabolic pathway[Title/
                "OR pathway engineering[Title/Abstract]")
 _HYB_SIG    = ("chemoenzymatic[Title/Abstract] OR chemoenzymatic synthesis[Title/Abstract] "
                "OR sequential biocatalysis[Title/Abstract] OR one-pot biocatalysis[Title/Abstract] "
-               "OR enzyme-chemical cascade[Title/Abstract]")
+               "OR enzyme-chemical cascade[Title/Abstract] "
+               "OR chemoenzymatic route[Title/Abstract] OR chemo-enzymatic[Title/Abstract]")
 
 # 广义 NNAA 术语——用于捕捉不点名具体化合物的方法论/综合性文献
 # 注意：这些检索式召回范围更宽，依赖 AI 筛选把关
