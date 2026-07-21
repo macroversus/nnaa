@@ -16,9 +16,12 @@ class CrossRefFetcher:
         self.rows_per_query = int(self.cfg.get("rows_per_query", 200))
         self.filter_types = self.cfg.get("filter_types", ["journal-article"])
         _qp = (self.cfg.get("query_param") or "query").strip().lower()
-        self._query_api_key = (
-            "query.bibliographic" if _qp in ("bibliographic", "query.bibliographic") else "query"
-        )
+        if _qp in ("bibliographic", "query.bibliographic"):
+            self._query_api_key = "query.bibliographic"
+        elif _qp in ("title", "query.title"):
+            self._query_api_key = "query.title"
+        else:
+            self._query_api_key = "query"
         default_cap = self.rows_per_query * 20
         self.limit_per_query = int(self.cfg.get("limit_per_query", default_cap))
         if self.cfg.get("request_interval_sec") is not None:
@@ -123,14 +126,20 @@ class CrossRefFetcher:
 
         return results
 
+    @staticmethod
+    def _unescape(text: str) -> str:
+        """解码 CrossRef 返回的 HTML 实体（&amp; → &, &lt; → < 等）。"""
+        import html
+        return html.unescape(text) if text else text
+
     def _parse_item(self, item: dict) -> Dict:
         doi = (item.get("DOI") or "").strip()
 
         titles = item.get("title", [])
-        title = titles[0] if titles else ""
+        title = self._unescape(titles[0]) if titles else ""
 
         containers = item.get("container-title", [])
-        journal = containers[0] if containers else ""
+        journal = self._unescape(containers[0]) if containers else ""
 
         pub_date = ""
         pub = item.get("published") or item.get("published-print") or item.get("published-online")

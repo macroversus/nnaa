@@ -12,6 +12,7 @@ TRACK_QUERY_BUILDERS = {
     "fermentation": lambda max_queries=None: build_crossref_queries("fermentation", max_queries),
     "chemical": lambda max_queries=None: build_crossref_queries("chemical", max_queries),
     "hybrid": lambda max_queries=None: build_crossref_queries("hybrid", max_queries),
+    "gce": lambda max_queries=None: build_crossref_queries("gce", max_queries),
 }
 
 

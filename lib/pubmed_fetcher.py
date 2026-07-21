@@ -73,16 +73,20 @@ class PubMedFetcher:
 
     def search_pmids(self, query: str, date_from: date, date_to: date) -> List[str]:
         """搜索 PMID 列表。
-        当结果数超过 PubMed esearch 的硬限制（9999）时，自动按年拆分递归检索。
+        PubMed esearch 硬限制 retstart ≤ 9999，无法绕过。
+        当全量结果超过 9999 时，按 YEAR_CHUNK_SIZE 年为单位拆分递归检索。
         """
         return self._search_pmids_range(query, date_from, date_to)
 
+    # 日期拆分粒度：3 年一段（vs 原来 1 年），减少约 3× API 调用
+    # 3 年内查询结果平均 ~5000-6000，安全低于 9999 上限
+    YEAR_CHUNK_SIZE = 3
+
     def _search_pmids_range(self, query: str, date_from: date, date_to: date) -> List[str]:
-        """单一日期段检索；超过 9999 条时拆年递归。"""
+        """单一日期段检索；超过 9999 条时按 YEAR_CHUNK_SIZE 年拆分递归。"""
         mindate = date_from.strftime("%Y/%m/%d")
         maxdate = date_to.strftime("%Y/%m/%d")
 
-        # 先只取 count，不下载 ID
         params = {
             **self._base_params(),
             "db": "pubmed",
@@ -104,10 +108,10 @@ class PubMedFetcher:
             logger.info(f"PubMed 查询无结果: {query[:80]}")
             return []
 
-        # PubMed esearch 硬限制：retstart 不能超过 9999
         ESEARCH_MAX = 9999
         if total > ESEARCH_MAX:
-            # 按年拆分；若同一年还超限则按月拆
+            logger.info(f"PubMed 查询 '{query[:60]}' 共 {total} 条（>{ESEARCH_MAX}），"
+                        f"日期 {mindate}~{maxdate}，将拆分")
             return self._split_and_search(query, date_from, date_to, total)
 
         logger.info(f"PubMed 查询 '{query[:60]}' 共 {total} 条，日期 {mindate}~{maxdate}")
@@ -115,7 +119,6 @@ class PubMedFetcher:
             logger.warning(f"  结果数 {total} 超过 max_pmids={self.max_pmids}，截断")
             total = self.max_pmids
 
-        # 分页下载 PMID
         all_pmids: List[str] = []
         for start in range(0, total, self.batch_size):
             params.update({"retmax": min(self.batch_size, total - start), "retstart": start})
@@ -131,25 +134,30 @@ class PubMedFetcher:
 
     def _split_and_search(self, query: str, date_from: date, date_to: date,
                           total: int) -> List[str]:
-        """将日期范围按年（或按月）拆分递归检索，绕过 esearch 9999 上限。"""
-        from datetime import timedelta
+        """将日期范围按年或月拆分递归检索，绕过 esearch 9999 上限。
+        只有当 span > YEAR_CHUNK_SIZE 年时才做年级拆分，否则直接月级拆分，
+        避免对恰好等于 YEAR_CHUNK_SIZE 的区间产生无限递归。
+        """
         import calendar
 
         span_days = (date_to - date_from).days
         all_pmids: List[str] = []
 
-        if span_days >= 365:
-            # 按年拆分
+        # 只有当范围明显大于单个 chunk（超过 YEAR_CHUNK_SIZE 年）才做年级拆分
+        if span_days > 365 * self.YEAR_CHUNK_SIZE:
+            logger.info(f"  结果 {total} 条超限，按 {self.YEAR_CHUNK_SIZE} 年分段拆分 "
+                        f"({date_from}~{date_to})")
             year = date_from.year
             end_year = date_to.year
             while year <= end_year:
-                seg_from = date(year, 1, 1) if year > date_from.year else date_from
-                seg_to   = date(year, 12, 31) if year < date_to.year else date_to
+                chunk_end = min(year + self.YEAR_CHUNK_SIZE - 1, end_year)
+                seg_from = date_from if year == date_from.year else date(year, 1, 1)
+                seg_to   = date_to   if chunk_end >= end_year else date(chunk_end, 12, 31)
                 seg_pmids = self._search_pmids_range(query, seg_from, seg_to)
                 all_pmids.extend(seg_pmids)
-                year += 1
+                year += self.YEAR_CHUNK_SIZE
         elif span_days >= 28:
-            # 按月拆分
+            # 按月拆分（最后的细粒度兜底）
             cur = date_from
             while cur <= date_to:
                 last_day = calendar.monthrange(cur.year, cur.month)[1]
@@ -157,13 +165,11 @@ class PubMedFetcher:
                 seg_to   = min(date(cur.year, cur.month, last_day), date_to)
                 seg_pmids = self._search_pmids_range(query, seg_from, seg_to)
                 all_pmids.extend(seg_pmids)
-                # 下一个月第一天
                 if cur.month == 12:
                     cur = date(cur.year + 1, 1, 1)
                 else:
                     cur = date(cur.year, cur.month + 1, 1)
         else:
-            # 范围已经很小但还超限，截断处理
             logger.warning(f"  日期段 {date_from}~{date_to} 结果仍超 9999，截断至 9999")
             params = {
                 **self._base_params(),
@@ -176,11 +182,6 @@ class PubMedFetcher:
                 "retstart": 0,
                 "retmode": "json",
             }
-            page_data = self._get_json(ESEARCH_URL, params)
-            if page_data:
-                all_pmids.extend(page_data.get("esearchresult", {}).get("idlist", []))
-
-        return all_pmids
 
     def _efetch_batch(self, batch: List[str]) -> List[Dict]:
         data = {

@@ -109,6 +109,11 @@ def resolve_crossref_query_batches(
     log: Optional[logging.Logger] = None,
 ) -> List[dict]:
     log = log or logger
+    # 支持轨道级别 enabled: false 关闭 CrossRef
+    track_raw = (cfg.get("crossref") or {}).get(nnaa_track)
+    if isinstance(track_raw, dict) and track_raw.get("enabled") is False:
+        log.info("CrossRef[%s] 轨道已禁用（enabled: false），跳过", nnaa_track)
+        return []
     cr = _crossref_track_cfg(cfg, nnaa_track)
     batches: List[dict] = []
 

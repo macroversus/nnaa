@@ -85,6 +85,11 @@ ARG_COMPOUND_NAMES: Sequence[str] = (
 # 脂肪链类（Ala/Val/Leu/Met 骨架衍生）
 # ---------------------------------------------------------------------------
 ALIPHATIC_COMPOUND_NAMES: Sequence[str] = (
+    # D-AA aliphatic series（不对称合成/酶法拆分 D-型氨基酸）
+    "D-phenylalanine", "D-leucine", "D-valine", "D-alanine",
+    "D-methionine", "D-serine", "D-tyrosine", "D-threonine",
+    "D-tryptophan", "D-proline",
+    "D-norvaline", "D-norleucine",
     # Nva — norvaline
     "norvaline", "L-norvaline", "2-aminopentanoic acid",
     "alpha-aminovaleric acid", "alpha-aminopentanoic acid",
@@ -405,6 +410,8 @@ ASP_ASN_COMPOUND_NAMES: Sequence[str] = (
 # β-氨基酸类
 # ---------------------------------------------------------------------------
 BETA_AA_NAMES: Sequence[str] = (
+    # β-Ala — beta-alanine（本体，非蛋白生成氨基酸）
+    "beta-alanine", "3-aminopropionic acid", "beta-aminopropionic acid",
     # 3-Abu — beta-aminobutyric acid
     "3-aminobutyric acid", "beta-aminobutyric acid",
     "3-aminobutanoic acid",
@@ -1002,40 +1009,54 @@ def _pair_crossref(core_terms: Sequence[str], signals: Sequence[str], max_querie
 
 def build_crossref_queries(track: str, max_queries: Optional[int] = None) -> List[str]:
     """
-    CrossRef 检索式 = 关键化合物名 × 该轨道工艺词
+    CrossRef 检索式（title 模式）：
+    - 非 GCE 轨道：用 ALL_PDF_COMPOUND_NAMES 全量化合物名直接作为 query.title 检索词，
+      同时补充通用 NNAA 术语 + 方法词组合，覆盖化学合成期刊中的方法论文献。
+    - GCE 轨道：用 GCE_COMPOUND_NAMES + GCE 方法词。
+    所有查询均配合 config 中的 query_param: title 使用，即在标题字段匹配，大幅降低噪声。
     """
+    if track == "gce":
+        queries: List[str] = list(GCE_COMPOUND_NAMES)
+        queries += list(_CR_GCE_METHODS)
+        if max_queries and max_queries > 0:
+            return queries[:max_queries]
+        return queries
+
+    if track not in ("pathway", "enzymatic", "fermentation", "chemical", "hybrid"):
+        return []
+
+    # 通用术语 + 各轨道方法词（用于捕捉方法论综述/方法纸）
     method_signals_map = {
         "pathway":      _CR_PATH_METHODS,
         "enzymatic":    _CR_ENZ_METHODS,
         "fermentation": _CR_FERM_METHODS,
         "chemical":     _CR_CHEM_METHODS,
         "hybrid":       _CR_HYB_METHODS,
-        "gce":          _CR_GCE_METHODS,
     }
-    method_signals = method_signals_map.get(track)
-    if not method_signals:
-        return []
+    method_signals = method_signals_map[track]
 
-    # 化合物名 × 工艺词 配对
-    queries = _pair_crossref(_CR_KEY_COMPOUNDS, method_signals, max_queries)
+    # ① 全量化合物名（548条）直接作为 query.title 词
+    queries = list(ALL_PDF_COMPOUND_NAMES)
 
+    # ② NNAA 通用术语 × 方法词（补充方法论论文）
+    nnaa_terms = [
+        "non-natural amino acid", "unnatural amino acid",
+        "noncanonical amino acid", "non-proteinogenic amino acid",
+    ]
+    for term in nnaa_terms:
+        for sig in method_signals:
+            queries.append(f"{term} {sig}")
+
+    # ③ hybrid 额外补充联用组合词
     if track == "hybrid":
-        extras = [
+        queries += [
             "chemoenzymatic synthesis amino acid",
             "one-pot chemoenzymatic amino acid",
-            "sequential chemoenzymatic amino acid synthesis",
-            "chemoenzymatic asymmetric amino acid",
+            "chemoenzymatic asymmetric amino acid synthesis",
         ]
-        queries.extend(extras)
-        if max_queries is not None and max_queries > 0:
-            return queries[:max_queries]
-    if track == "gce":
-        # GCE track: 化合物 × 方法词 + 纯方法词
-        queries = _pair_crossref(_CR_GCE_COMPOUNDS, _CR_GCE_METHODS, max_queries)
-        extras_gce = list(_CR_GCE_METHODS)  # 方法词独立作为查询
-        queries.extend(extras_gce)
-        if max_queries is not None and max_queries > 0:
-            return queries[:max_queries]
+
+    if max_queries and max_queries > 0:
+        return queries[:max_queries]
     return queries
 
 
