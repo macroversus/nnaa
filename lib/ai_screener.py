@@ -4,7 +4,9 @@ import json
 import logging
 import os
 import re
+import threading
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 import requests
@@ -438,61 +440,119 @@ def screen_records(
                 by_doi = dict(cp.get("results_by_doi") or {})
                 batch_failed = set(cp.get("batch_failed_dois") or [])
 
+    max_workers = max(1, int(ai_cfg.get("max_workers", 1)))
     processed = set(by_doi.keys()) | batch_failed
 
+    # Build pending batch list
+    pending_batches = []
     for i in range(0, len(ordered_records), batch_size):
         batch = ordered_records[i : i + batch_size]
-        stats["ai_batches"] += 1
         batch_dois = _batch_dois(batch)
-
         if batch_dois and batch_dois.issubset(processed):
+            stats["ai_batches"] += 1
             stats["ai_batches_skipped"] += 1
             continue
+        pending_batches.append((i // batch_size, batch))
 
+    state_lock = threading.Lock()
+    checkpoint_counter = [0]
+    CHECKPOINT_EVERY = 10  # save checkpoint every N completed batches
+
+    def _process_batch(batch_idx: int, batch: List[Dict]):
         track = _record_track(batch[0]) if batch else ""
         system = build_system_prompt(ai_cfg, track)
         user = _build_user_payload(batch)
         try:
-            raw = _call_chat(api_base, api_key, model, system, user)
+            raw = _call_chat(api_base, api_key, model, system, user, timeout=180)
             parsed = json.loads(_strip_json_fence(raw))
             if not isinstance(parsed, list):
                 raise ValueError("顶层不是数组")
-            for item in parsed:
-                if not isinstance(item, dict):
-                    continue
-                doi = normalize_doi(item.get("doi") or "")
-                if not doi:
-                    continue
-                by_doi[doi] = item
-                batch_failed.discard(doi)
+            result_items = [item for item in parsed if isinstance(item, dict)]
+            return batch_idx, track, batch, result_items, None
         except Exception as e:
-            stats["ai_errors"] += 1
-            logger.warning(f"AI 批次解析失败 (batch {stats['ai_batches']}, track={track or 'mixed'}): {e}")
-            if keep_on_batch_error:
-                for rec in batch:
-                    d = normalize_doi(rec.get("doi") or "")
-                    if d:
-                        batch_failed.add(d)
-                        by_doi.pop(d, None)
-        else:
-            for d in batch_dois:
-                if d not in by_doi and d not in batch_failed:
-                    logger.debug(f"AI 批次 {stats['ai_batches']} 未返回 DOI: {d}")
+            return batch_idx, track, batch, [], e
 
-        processed = set(by_doi.keys()) | batch_failed
-        if checkpoint_enabled:
-            from ai_checkpoint import save_ai_checkpoint
+    if max_workers <= 1:
+        for batch_idx, batch in pending_batches:
+            stats["ai_batches"] += 1
+            _, track, _, result_items, err = _process_batch(batch_idx, batch)
+            batch_dois = _batch_dois(batch)
+            if err:
+                stats["ai_errors"] += 1
+                logger.warning(f"AI 批次解析失败 (batch {stats['ai_batches']}, track={track or 'mixed'}): {err}")
+                if keep_on_batch_error:
+                    for rec in batch:
+                        d = normalize_doi(rec.get("doi") or "")
+                        if d:
+                            batch_failed.add(d)
+                            by_doi.pop(d, None)
+            else:
+                for item in result_items:
+                    doi = normalize_doi(item.get("doi") or "")
+                    if doi:
+                        by_doi[doi] = item
+                        batch_failed.discard(doi)
+                for d in batch_dois:
+                    if d not in by_doi and d not in batch_failed:
+                        logger.debug(f"AI 批次 {stats['ai_batches']} 未返回 DOI: {d}")
 
-            save_ai_checkpoint(
-                state_dir,
-                signature,
-                len(ordered_records),
-                batch_size,
-                by_doi,
-                batch_failed,
-                stats["ai_batches"],
-            )
-        time.sleep(interval)
+            processed = set(by_doi.keys()) | batch_failed
+            if checkpoint_enabled:
+                from ai_checkpoint import save_ai_checkpoint
+                save_ai_checkpoint(state_dir, signature, len(ordered_records),
+                                   batch_size, by_doi, batch_failed, stats["ai_batches"])
+            time.sleep(interval)
+    else:
+        logger.info(f"AI 筛选并行模式：max_workers={max_workers}, batch_size={batch_size}")
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            future_to_meta = {}
+            for batch_idx, batch in pending_batches:
+                future = executor.submit(_process_batch, batch_idx, batch)
+                future_to_meta[future] = (batch_idx, batch)
+                time.sleep(interval / max_workers)  # stagger submissions slightly
+
+            for future in as_completed(future_to_meta):
+                _, batch = future_to_meta[future]
+                batch_dois = _batch_dois(batch)
+                with state_lock:
+                    stats["ai_batches"] += 1
+                    try:
+                        _, track, _, result_items, err = future.result()
+                    except Exception as e:
+                        err = e
+                        result_items = []
+                        track = ""
+
+                    if err:
+                        stats["ai_errors"] += 1
+                        logger.warning(f"AI 批次解析失败 (batch {stats['ai_batches']}, track={track or 'mixed'}): {err}")
+                        if keep_on_batch_error:
+                            for rec in batch:
+                                d = normalize_doi(rec.get("doi") or "")
+                                if d:
+                                    batch_failed.add(d)
+                                    by_doi.pop(d, None)
+                    else:
+                        for item in result_items:
+                            doi = normalize_doi(item.get("doi") or "")
+                            if doi:
+                                by_doi[doi] = item
+                                batch_failed.discard(doi)
+                        for d in batch_dois:
+                            if d not in by_doi and d not in batch_failed:
+                                logger.debug(f"AI 批次 {stats['ai_batches']} 未返回 DOI: {d}")
+
+                    processed = set(by_doi.keys()) | batch_failed
+                    checkpoint_counter[0] += 1
+                    if checkpoint_enabled and checkpoint_counter[0] % CHECKPOINT_EVERY == 0:
+                        from ai_checkpoint import save_ai_checkpoint
+                        save_ai_checkpoint(state_dir, signature, len(ordered_records),
+                                           batch_size, by_doi, batch_failed, stats["ai_batches"])
+                        done = len(processed)
+                        total = len(ordered_records)
+                        passed = sum(1 for v in by_doi.values() if v.get("pass_filter"))
+                        pct = done * 100 // total if total else 0
+                        logger.info(f"进度: {done}/{total} ({pct}%) | 通过: {passed} 条")
 
     if checkpoint_enabled:
         from ai_checkpoint import clear_ai_checkpoint
