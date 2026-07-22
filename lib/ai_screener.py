@@ -462,9 +462,20 @@ def screen_records(
         track = _record_track(batch[0]) if batch else ""
         system = build_system_prompt(ai_cfg, track)
         user = _build_user_payload(batch)
+        # Stagger parallel workers slightly to avoid thundering-herd on the API
+        time.sleep(batch_idx % max_workers * (interval / max_workers))
         try:
             raw = _call_chat(api_base, api_key, model, system, user, timeout=180)
-            parsed = json.loads(_strip_json_fence(raw))
+            cleaned = _strip_json_fence(raw)
+            try:
+                parsed = json.loads(cleaned)
+            except json.JSONDecodeError:
+                try:
+                    from json_repair import repair_json
+                    parsed = json.loads(repair_json(cleaned))
+                    logger.debug(f"批次 {batch_idx} JSON 修复成功")
+                except Exception:
+                    raise
             if not isinstance(parsed, list):
                 raise ValueError("顶层不是数组")
             result_items = [item for item in parsed if isinstance(item, dict)]
@@ -505,11 +516,10 @@ def screen_records(
     else:
         logger.info(f"AI 筛选并行模式：max_workers={max_workers}, batch_size={batch_size}")
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            future_to_meta = {}
-            for batch_idx, batch in pending_batches:
-                future = executor.submit(_process_batch, batch_idx, batch)
-                future_to_meta[future] = (batch_idx, batch)
-                time.sleep(interval / max_workers)  # stagger submissions slightly
+            future_to_meta = {
+                executor.submit(_process_batch, batch_idx, batch): (batch_idx, batch)
+                for batch_idx, batch in pending_batches
+            }
 
             for future in as_completed(future_to_meta):
                 _, batch = future_to_meta[future]
