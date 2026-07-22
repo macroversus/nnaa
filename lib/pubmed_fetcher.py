@@ -182,6 +182,11 @@ class PubMedFetcher:
                 "retstart": 0,
                 "retmode": "json",
             }
+            page_data = self._get_json(ESEARCH_URL, params)
+            if page_data:
+                all_pmids.extend(page_data.get("esearchresult", {}).get("idlist", []))
+
+        return all_pmids
 
     def _efetch_batch(self, batch: List[str]) -> List[Dict]:
         data = {

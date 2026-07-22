@@ -195,21 +195,23 @@ def cmd_run(args) -> int:
         ai_tmp = None
         if args.force_ai and not ai_cfg.get("enabled", False):
             ai_tmp = _write_temp_cfg(cfg, {"ai_screening.enabled": True})
-            ai_args = argparse.Namespace(
-                config=str(ai_tmp),
-                resume=args.resume,
-                clear_checkpoint=args.clear_checkpoint,
-                verbose=args.verbose,
-            )
+            ai_config_path = str(ai_tmp)
         else:
-            ai_args = argparse.Namespace(
-                config=args.config,
-                resume=args.resume,
-                clear_checkpoint=args.clear_checkpoint,
-                verbose=args.verbose,
-            )
+            ai_config_path = args.config
+
+        # 阶段 1 占用大量内存（检索+去重缓存）；在同进程内直接启动 AI 会导致内存峰值翻倍
+        # 触发 OOM Killer。以独立子进程运行阶段 2，让阶段 1 内存先被 OS 回收。
         try:
-            if cmd_ai(ai_args) != 0:
+            import subprocess as _sp
+            ai_cmd = [sys.executable, __file__, "ai", "-c", ai_config_path]
+            if getattr(args, "resume", False):
+                ai_cmd.append("--resume-ai")
+            if getattr(args, "clear_checkpoint", False):
+                ai_cmd.append("--clear-checkpoint")
+            if getattr(args, "verbose", False):
+                ai_cmd.append("-v")
+            ret = _sp.call(ai_cmd)
+            if ret != 0:
                 return 1
         finally:
             if ai_tmp:
