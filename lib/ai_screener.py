@@ -465,7 +465,7 @@ def screen_records(
         # Stagger parallel workers slightly to avoid thundering-herd on the API
         time.sleep(batch_idx % max_workers * (interval / max_workers))
         try:
-            raw = _call_chat(api_base, api_key, model, system, user, timeout=180)
+            raw = _call_chat(api_base, api_key, model, system, user, timeout=90)
             cleaned = _strip_json_fence(raw)
             try:
                 parsed = json.loads(cleaned)
